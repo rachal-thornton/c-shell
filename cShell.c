@@ -3,7 +3,7 @@
     Class: CS 366-01
     Assignment: Homework 2 | cShell
     Due: 17 March 2026
-    Desc: A basic shell program written in C that supports an interactive and batch mode.
+    Desc: A basic shell program written in C that supports both an interactive and batch mode.
 */
 
 /* Preprocessor Directives */
@@ -14,7 +14,6 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <pthread.h>
 
 #define MAX_LINE_SIZE 100
 #define MAX_ARGS_SIZE 12
@@ -23,7 +22,7 @@
 void interactive_mode();
 void batch_mode(char *filename);
 void trim(char *str, char *dest);
-void run_command(char *command);
+int run_command(char *command);
 
 /* Main */
 int main(int argc, char *argv[]) {
@@ -35,13 +34,15 @@ int main(int argc, char *argv[]) {
         batch_mode(argv[1]);
     /* Too many args */
     } else { /* More than one additional arg provided */
-        printf("Too many args provided. Please provide at most 1 additional arg for batch mode.\n");
+        printf("Correct usage: cShell <batch file>\n");
         return 1;
     }
     return 0;
 }
 
-/* Interactive Mode Function */
+/* Interactive Mode Function 
+* Pre: No args specified when running the program
+* Post: Runs the interactive shell */
 void interactive_mode() {
     char *input = malloc(sizeof(char) * MAX_LINE_SIZE);
     char *dest = malloc(sizeof(char) * MAX_LINE_SIZE);
@@ -54,8 +55,9 @@ void interactive_mode() {
         /* Trim whitespace from input */
         trim(input, dest);
 
-        /* Pass trimmed input into run_command */
-        run_command(dest);
+        if (run_command(dest)) {
+            break;
+        }
     }
     /* Free memory */
     free(input);
@@ -66,18 +68,22 @@ void interactive_mode() {
 void batch_mode(char *filename) {
     FILE *filepointer = fopen(filename, "r");
     if (filepointer == NULL) {
-        printf("Error opening file. Please check the filename and try again.\n");
+        printf("Error opening file!\n");
         exit(1);
     } else {
         char *input = malloc(sizeof(char) * MAX_LINE_SIZE);
         char *dest = malloc(sizeof(char) * MAX_LINE_SIZE);
 
+        printf("Batch mode. File: %s\n", filename);
+
         /* Read commands from batch file and run them */
         while (fgets(input, MAX_LINE_SIZE, filepointer) != NULL) {
             /* Trim whitespace from input */
             trim(input, dest);
-            /* Pass trimmed line into run_command */
-            run_command(dest);
+
+            if (run_command(dest)) {
+                break;
+            }
         }
         /* Free memory and close file */
         free(input);
@@ -106,18 +112,18 @@ void trim(char *str, char *dest) {
 }
 
 /* Run Command Function */
-void run_command(char *command) {
+int run_command(char *command) {
     /* Check for specific commands or execute command with execvp and fork */
     if (strlen(command) == 0) { /* Empty input */
-        return;
+        return 0;
     } else if (strcmp(command, "quit") == 0) { /* Exit the shell program */
-        free(command);
-        exit(0);
+        return 1;
     } else if (strcmp(command, "help") == 0) { /* Help menu */
         printf("This is the help menu. Valid commands in this shell are:\n");
         printf("1. help - displays this menu.\n");
         printf("2. quit - exit the shell program.\n");
         printf("3. <other> - other commands compatible with Base.\n");
+        return 0;
     } else { /* Any other command in Bash */
         char *args[MAX_ARGS_SIZE];
         int i = 0;
@@ -138,7 +144,7 @@ void run_command(char *command) {
         } else if (p == 0) {
             /* Child process */
             if (execvp(args[0], args) == -1) {
-                printf("Invalid command!\n");
+                printf("Invalid command! Please type 'help' for more information.\n");
             }
             abort();
         } else {
@@ -149,5 +155,6 @@ void run_command(char *command) {
                 tpid = wait(&child_status);
             } while (tpid != p);
         }
+        return 0;
     } 
 }
