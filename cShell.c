@@ -15,6 +15,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+/* Constant Values */
 #define MAX_LINE_SIZE 100
 #define MAX_ARGS_SIZE 12
 
@@ -42,7 +43,7 @@ int main(int argc, char *argv[]) {
 
 /* Interactive Mode Function 
 * Pre: No args specified when running the program
-* Post: Runs the interactive shell */
+* Post: Runs the shell in interactive mode */
 void interactive_mode() {
     char *input = malloc(sizeof(char) * MAX_LINE_SIZE);
     char *dest = malloc(sizeof(char) * MAX_LINE_SIZE);
@@ -55,18 +56,24 @@ void interactive_mode() {
         /* Trim whitespace from input */
         trim(input, dest);
 
+        /* Run the command and check if user wants to quit */
         if (run_command(dest)) {
             break;
         }
     }
+
     /* Free memory */
     free(input);
     free(dest);
 }
 
-/* Batch Mode Function */
+/* Batch Mode Function 
+* Pre: A batch file is provided as an argument
+* Post: Runs commands from the batch file */
 void batch_mode(char *filename) {
+    /* Create a file pointer to read file */
     FILE *filepointer = fopen(filename, "r");
+
     if (filepointer == NULL) {
         printf("Error opening file!\n");
         exit(1);
@@ -81,10 +88,12 @@ void batch_mode(char *filename) {
             /* Trim whitespace from input */
             trim(input, dest);
 
+            /* Run the command and check if user wants to quit */
             if (run_command(dest)) {
                 break;
             }
         }
+
         /* Free memory and close file */
         free(input);
         free(dest);
@@ -92,7 +101,9 @@ void batch_mode(char *filename) {
     }
 }
 
-/* Trim Function */
+/* Trim Function 
+* Pre: A string is provided as input
+* Post: Removes all whitespace and sends trimmed string to dest */
 void trim(char *str, char *dest) {
     memset(dest, '\0', sizeof(char) * MAX_LINE_SIZE);
 
@@ -111,12 +122,14 @@ void trim(char *str, char *dest) {
 	strncpy(dest, str, i + 1);
 }
 
-/* Run Command Function */
+/* Run Command Function 
+* Pre: A command string is provided as input
+* Post: Executes the command */
 int run_command(char *command) {
     /* Check for specific commands or execute command with execvp and fork */
     if (strlen(command) == 0) { /* Empty input */
         return 0;
-    } else if (strcmp(command, "quit") == 0) { /* Exit the shell program */
+    } else if (strcmp(command, "quit") == 0) { /* Exit the program */
         return 1;
     } else if (strcmp(command, "help") == 0) { /* Help menu */
         printf("This is the help menu. Valid commands in this shell are:\n");
